@@ -89,6 +89,8 @@ def crop_to_shape(data, shape):
     """
     diff_nx = (data.shape[1] - shape[1])
     diff_ny = (data.shape[2] - shape[2])
+    if diff_nx == 0 and diff_ny == 0:
+        return data
 
     offset_nx_left = diff_nx // 2
     offset_nx_right = diff_nx - offset_nx_left
@@ -131,12 +133,24 @@ def combine_img_prediction(data, gt, pred):
 
     :returns img: the concatenated rgb image
     """
+    nx = pred.shape[1]
     ny = pred.shape[2]
     ch = data.shape[3]
-    img = np.concatenate((to_rgb(crop_to_shape(data, pred.shape).reshape(-1, ny, ch)),
-                          to_rgb(crop_to_shape(gt[..., 1], pred.shape).reshape(-1, ny, 1)),
-                          to_rgb(pred[..., 1].reshape(-1, ny, 1))), axis=1)
+    if ch == 3:
+        img = np.concatenate((
+            to_rgb(crop_to_shape(data, pred.shape).reshape(-1, ny, ch)),
+            to_rgb(crop_to_shape(gt[..., 1], pred.shape).reshape(-1, ny, 1)),
+            to_rgb(pred[..., 1].reshape(-1, ny, 1))), axis=1)
+    else:
+        print(np.max(data))
+        print("max gt:", np.max(gt))
+        print("min pred:", np.min(pred))
+        print("max pred:", np.max(pred))
+        img = np.concatenate((data * 255, gt * 255, pred * 255), axis=1)
+        img = img.reshape(-1, img.shape[1], img.shape[2])
+
     return img
+
 
 def save_image(img, path):
     """
@@ -145,7 +159,7 @@ def save_image(img, path):
     :param img: the rgb image to save
     :param path: the target path
     """
-    Image.fromarray(img.round().astype(np.uint8)).save(path, 'JPEG', dpi=[300,300], quality=90)
+    Image.fromarray(img.round().astype(np.uint8)).save(path, 'JPEG', dpi=[300, 300], quality=90)
 
 
 def create_training_path(output_path, prefix="run_"):

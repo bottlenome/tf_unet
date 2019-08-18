@@ -20,6 +20,7 @@ author: jakeret
 from __future__ import print_function, division, absolute_import, unicode_literals
 
 import os
+import sys
 import shutil
 import numpy as np
 from collections import OrderedDict
@@ -99,7 +100,7 @@ def create_conv_net(x, keep_prob, channels, n_class, layers=3, features_root=16,
             biases.append((b1, b2))
             convs.append((conv1, conv2))
 
-            size -= 2 * 2 * (filter_size // 2) # valid conv
+            size -= 2 * 2 * (filter_size // 2)  # valid conv
             if layer < layers - 1:
                 pools[layer] = max_pool(dw_h_convs[layer], pool_size)
                 in_node = pools[layer]
@@ -142,7 +143,10 @@ def create_conv_net(x, keep_prob, channels, n_class, layers=3, features_root=16,
         weight = weight_variable([1, 1, features_root, n_class], stddev)
         bias = bias_variable([n_class], name="bias")
         conv = conv2d(in_node, weight, bias, tf.constant(1.0))
-        output_map = tf.nn.relu(conv)
+        # output_map = tf.nn.relu(conv)
+        print(conv)
+        print(x_image)
+        output_map = conv + x_image
         up_h_convs["out"] = output_map
 
     if summaries:
@@ -206,7 +210,7 @@ class Unet(object):
                                                tf.reshape(pixel_wise_softmax(logits), [-1, n_class]))
 
         with tf.name_scope("results"):
-            self.predicter = pixel_wise_softmax(logits)
+            self.predicter = logits
             self.correct_pred = tf.equal(tf.argmax(self.predicter, 3), tf.argmax(self.y, 3))
             self.accuracy = tf.reduce_mean(tf.cast(self.correct_pred, tf.float32))
 
@@ -245,7 +249,9 @@ class Unet(object):
                 intersection = tf.reduce_sum(prediction * self.y)
                 union = eps + tf.reduce_sum(prediction) + tf.reduce_sum(self.y)
                 loss = -(2 * intersection / (union))
-
+            elif cost_name == "euclidean":
+                loss = 100.0 * tf.reduce_mean(
+                        tf.square(tf.abs(flat_logits-flat_labels)))
             else:
                 raise ValueError("Unknown cost function: " % cost_name)
 
@@ -316,7 +322,7 @@ class Trainer(object):
 
     """
 
-    def __init__(self, net, batch_size=1, verification_batch_size = 4, norm_grads=False, optimizer="momentum", opt_kwargs={}):
+    def __init__(self, net, batch_size=1, verification_batch_size=4, norm_grads=False, optimizer="momentum", opt_kwargs={}):
         self.net = net
         self.batch_size = batch_size
         self.verification_batch_size = verification_batch_size
@@ -427,6 +433,7 @@ class Trainer(object):
 
             avg_gradients = None
             for epoch in range(epochs):
+                print("epoch {}".format(epoch))
                 total_loss = 0
                 for step in range((epoch * training_iters), ((epoch + 1) * training_iters)):
                     batch_x, batch_y = data_provider(self.batch_size)
@@ -437,6 +444,8 @@ class Trainer(object):
                         feed_dict={self.net.x: batch_x,
                                    self.net.y: util.crop_to_shape(batch_y, pred_shape),
                                    self.net.keep_prob: dropout})
+                    print("step {} : loss {}".format(step, loss), end="\r")
+                    sys.stdout.flush()
 
                     if self.net.summaries and self.norm_grads:
                         avg_gradients = _update_avg_gradients(avg_gradients, gradients, step)
@@ -448,6 +457,7 @@ class Trainer(object):
                                                     util.crop_to_shape(batch_y, pred_shape))
 
                     total_loss += loss
+                print()
 
                 self.output_epoch_stats(epoch, total_loss, training_iters, lr)
                 self.store_prediction(sess, test_x, test_y, "epoch_%s" % epoch)
@@ -473,7 +483,8 @@ class Trainer(object):
                                                                         loss))
 
         img = util.combine_img_prediction(batch_x, batch_y, prediction)
-        util.save_image(img, "%s/%s.jpg" % (self.prediction_path, name))
+        for i in range(img.shape[0]):
+            util.save_image(img[i], "%s/%s_%d.jpg" % (self.prediction_path, name, i))
 
         return pred_shape
 
