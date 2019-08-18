@@ -435,17 +435,18 @@ class Trainer(object):
             for epoch in range(epochs):
                 print("epoch {}".format(epoch))
                 total_loss = 0
-                for step in range((epoch * training_iters), ((epoch + 1) * training_iters)):
+                for step in range(1, training_iters + 1):
                     batch_x, batch_y = data_provider(self.batch_size)
 
                     # Run optimization op (backprop)
                     _, loss, lr, gradients = sess.run(
-                        (self.optimizer, self.net.cost, self.learning_rate_node, self.net.gradients_node),
+                        (self.optimizer,
+                         self.net.cost,
+                         self.learning_rate_node,
+                         self.net.gradients_node),
                         feed_dict={self.net.x: batch_x,
                                    self.net.y: util.crop_to_shape(batch_y, pred_shape),
                                    self.net.keep_prob: dropout})
-                    print("step {} : loss {}".format(step, loss), end="\r")
-                    sys.stdout.flush()
 
                     if self.net.summaries and self.norm_grads:
                         avg_gradients = _update_avg_gradients(avg_gradients, gradients, step)
@@ -457,6 +458,9 @@ class Trainer(object):
                                                     util.crop_to_shape(batch_y, pred_shape))
 
                     total_loss += loss
+                    print("step {} : loss {}".format(step,
+                          total_loss / (step * self.batch_size)), end="\r")
+                    sys.stdout.flush()
                 print()
 
                 self.output_epoch_stats(epoch, total_loss, training_iters, lr)

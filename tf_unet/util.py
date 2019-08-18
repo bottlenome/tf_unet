@@ -146,7 +146,7 @@ def combine_img_prediction(data, gt, pred):
         print("max gt:", np.max(gt))
         print("min pred:", np.min(pred))
         print("max pred:", np.max(pred))
-        img = np.concatenate((data * 255, gt * 255, pred * 255), axis=1)
+        img = np.concatenate((data, gt, pred), axis=1)
         img = img.reshape(-1, img.shape[1], img.shape[2])
 
     return img
