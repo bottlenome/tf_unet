@@ -7,7 +7,9 @@ from PIL import Image
 
 def intensity_windowing(img, a, b):
     assert(a < b)
-    return np.minimum(255, np.maximum(0, (img - a) / (b - a) * 255))
+    img = img.astype("float")
+    img = np.minimum(255, np.maximum(0, (img - a) / (b - a) * 255))
+    return img.astype("uint8")
 
 
 def normalize(img):
