@@ -19,11 +19,11 @@ class FBPDataProvider(ImageDataProvider):
         label_name = image_name.replace(self.data_suffix, self.mask_suffix)
 
         img = self._load_file(image_name, np.float32)
-        label = (self._load_file(label_name, np.float32) - 128.) / 128.
+        label = (self._load_file(label_name, np.float32) - 128.) * 2.
         return img, label
 
     def _process_data(self, data):
-        return (data - 128.) / 128.
+        return (data - 128.) * 2.
 
     def len(self):
         return len(self.data_files)
