@@ -3,6 +3,32 @@ import scipy.io as sio
 import numpy as np
 
 
+class FBPDataProvider(ImageDataProvider):
+    def __init__(self, search_path, a_min=None, a_max=None,
+                 data_suffix=".png", mask_suffix='_reconst.png',
+                 shuffle_data=True):
+        super(FBPDataProvider, self).__init__(search_path, a_min, a_max,
+                                              data_suffix, mask_suffix,
+                                              shuffle_data)
+        self.channels = 1
+        self.n_class = 1
+
+    def _next_data(self):
+        self._cylce_file()
+        image_name = self.data_files[self.file_idx]
+        label_name = image_name.replace(self.data_suffix, self.mask_suffix)
+
+        img = self._load_file(image_name, np.float32)
+        label = (self._load_file(label_name, np.float32) - 128.) / 128.
+        return img, label
+
+    def _process_data(self, data):
+        return (data - 128.) / 128.
+
+    def len(self):
+        return len(self.data_files)
+
+
 class MatDataProvider(ImageDataProvider):
     def __init__(self, path, a_min=None, a_max=None,
                  data_suffix=".mat", shuffle_data=True):
