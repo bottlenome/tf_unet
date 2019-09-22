@@ -36,6 +36,9 @@ def main(input_path, output_path, size):
                 continue
             print(file_path, output_file)
             fbped_image = make_fbped(Image.open(file_path), size)
+            mi = np.min(fbped_image)
+            ma = np.max(fbped_image)
+            fbped_image = (fbped_image - mi) / (ma - mi) * 255.
             Image.fromarray(fbped_image.astype('uint8')).save(output_file)
 
 
