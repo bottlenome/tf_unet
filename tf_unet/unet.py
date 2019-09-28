@@ -262,7 +262,7 @@ class Unet(object):
 
             return loss
 
-    def predict(self, model_path, x_test):
+    def predict(self, model_path, x_test, config=None):
         """
         Uses the model to create a prediction for the given data
 
@@ -272,7 +272,7 @@ class Unet(object):
         """
 
         init = tf.global_variables_initializer()
-        with tf.Session() as sess:
+        with tf.Session(config=config) as sess:
             # Initialize variables
             sess.run(init)
 
