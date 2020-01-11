@@ -1,49 +1,32 @@
-import os
-from PIL import Image
-from skimage.transform import radon, iradon
 import numpy as np
+from skimage.transform import radon, iradon
+import os
 import sys
-import time
-import psutil
 
 
-def make_fbped(img, size):
-    img = np.array(img)
-    theta = np.linspace(0., 360., size, endpoint=False)
-    sino = radon(img, theta=theta, circle=True)
-    return iradon(sino, theta=theta, circle=True)
+def make_image(src_path, num_project, dst_path):
+    image = np.load(src_path)
+    theta = np.linspace(0., 360., num_project, endpoint=False)
+    sinogram = radon(image, theta=theta, circle=True)
+    reconstruction_fbp = iradon(sinogram, theta=theta, circle=True)
+    np.save(dst_path, reconstruction_fbp)
 
 
-def check_cpu_temperature():
-    temp = psutil.sensors_temperatures()['coretemp'][0].current
-    while temp > 60:
-        print("temperature high", )
-        time.sleep(1)
-        temp = psutil.sensors_temperatures()['coretemp'][0].current
+num_images = 28463
+project_num = 64
+start = int(sys.argv[1])
+data_folder = "/home/urota/git/fab/data_folder/fab/train_datas/"
+src_file = data_folder + "{}/{}_pre.npy"
+dst_file = data_folder + "{}/{}_{}_fbped.npy"
 
-
-def main(input_path, output_path, size):
-    save_path = output_path + os.sep + str(size)
-    if not os.path.exists(save_path):
-        os.mkdir(save_path)
-    for curDir, dirs, files in os.walk(input_path):
-        for name in files:
-            check_cpu_temperature()
-            file_path = curDir + os.sep + name
-            output_file = save_path + os.sep + name
-            if os.path.exists(output_file):
-                print("ignore", output_file)
-                continue
-            print(file_path, output_file)
-            fbped_image = make_fbped(Image.open(file_path), size)
-            mi = np.min(fbped_image)
-            ma = np.max(fbped_image)
-            fbped_image = (fbped_image - mi) / (ma - mi) * 255.
-            Image.fromarray(fbped_image.astype('uint8')).save(output_file)
-
-
-if __name__ == '__main__':
-    input_path = sys.argv[1]
-    size = int(sys.argv[2])
-    output_path = "/mnt/collect/ct_images/fbped_images"
-    main(input_path, output_path, size)
+for i in range(start, num_images):
+    print(i)
+    if i >= 28000:
+        folder_num = num_images
+    else:
+        folder_num = (int(i / 1000) + 1) * 1000
+    for p_num in [64, 128, 256, 512]:
+        src = src_file.format(folder_num, i)
+        dst = dst_file.format(folder_num, i, p_num)
+        if not os.path.exists(dst):
+            make_image(src, p_num, dst)
