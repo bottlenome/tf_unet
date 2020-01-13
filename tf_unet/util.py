@@ -161,6 +161,7 @@ def save_image(img, path):
     :param img: the rgb image to save
     :param path: the target path
     """
+    img = to_rgb(img)
     Image.fromarray(img.round().astype(np.uint8)).save(path, 'JPEG', dpi=[300, 300], quality=90)
 
 
