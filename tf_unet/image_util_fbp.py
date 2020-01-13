@@ -13,17 +13,26 @@ class FBPDataProvider(ImageDataProvider):
         self.channels = 1
         self.n_class = 1
 
+    def normalize(self, img, range_max=255*2):
+        min_img = np.min(img)
+        max_img = np.max(img)
+        range_img = max_img - min_img
+        center = (min_img + max_img) / 2.
+        return (img - center) * range_max / range_img
+
     def _next_data(self):
         self._cylce_file()
         image_name = self.data_files[self.file_idx]
         label_name = image_name.replace(self.data_suffix, self.mask_suffix)
 
-        img = self._load_file(image_name, np.float32)
-        label = (self._load_file(label_name, np.float32) - 128.) * 2.
+        img = self.normalize(self._load_file(image_name, np.float32))
+        # label = (self._load_file(label_name, np.float32) - 128.) * 2.
+        label = self.normalize(self._load_file(label_name, np.float32))
         return img, label
 
     def _process_data(self, data):
-        return (data - 128.) * 2.
+        # return (data - 128.) * 2.
+        return self.normalize(data)
 
     def len(self):
         return len(self.data_files)
