@@ -25,6 +25,8 @@ import shutil
 import numpy as np
 from collections import OrderedDict
 import logging
+import time
+from datetime import datetime, timedelta, timezone
 
 import tensorflow as tf
 
@@ -432,8 +434,14 @@ class Trainer(object):
             logging.info("Start optimization")
 
             avg_gradients = None
+
+            # for time count
+            total_time = 0
+            JST = timezone(timedelta(hours=+9), 'JST')
+
             for epoch in range(epochs):
                 print("epoch {}".format(epoch))
+                start = time.time()
                 total_loss = 0
                 for step in range(1, training_iters + 1):
                     batch_x, batch_y = data_provider(self.batch_size)
@@ -462,6 +470,15 @@ class Trainer(object):
                           total_loss / (step * self.batch_size)), end="\r")
                     sys.stdout.flush()
                 print()
+                elapsed_time = time.time() - start
+                print("elapsed time:{} sec".format(elapsed_time))
+                total_time += elapsed_time
+                print("average time:{} sec".format(total_time / (epoch + 1)))
+                now = datetime.now(JST)
+                delta = timedelta(seconds=(total_time /
+                                  (epoch + 1) * (epochs - epoch)))
+                estimate = now + delta
+                print("estimate time:{0:%Y-%m-%d %H:%M:%S}".format(estimate))
 
                 self.output_epoch_stats(epoch, total_loss, training_iters, lr)
                 self.store_prediction(sess, test_x, test_y, "epoch_%s" % epoch)
