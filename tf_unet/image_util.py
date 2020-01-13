@@ -186,7 +186,10 @@ class ImageDataProvider(BaseDataProvider):
         return [name for name in all_files if self.data_suffix in name and not self.mask_suffix in name]
 
     def _load_file(self, path, dtype=np.float32):
-        return np.array(Image.open(path), dtype)
+        if path.find("npy") != -1:
+            return np.load(path)
+        else:
+            return np.array(Image.open(path), dtype)
 
     def _cylce_file(self):
         self.file_idx += 1
